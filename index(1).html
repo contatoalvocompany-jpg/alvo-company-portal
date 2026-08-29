@@ -1,0 +1,398 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>ALVO Company</title>
+<style>
+:root{
+  --o:#FF6A00;--g:#FF9A00;--d:#0D1421;--p:#101b2b;--l:#26364b;
+  --w:#F5F6F8;--s:#BFC3C8;--green:#79dd5a;--red:#ff8d94;--yellow:#ffc229
+}
+*{box-sizing:border-box}
+body{margin:0;background:radial-gradient(circle at 80% 0%,rgba(255,106,0,.12),transparent 25%),var(--d);color:var(--w);font-family:Arial,sans-serif}
+.wrap{max-width:1120px;margin:auto;padding:24px}
+.head{display:flex;justify-content:space-between;align-items:center;margin-bottom:22px}
+.brand{font-size:30px;font-weight:800;letter-spacing:2px}.brand span{color:var(--o)}
+.tag{color:var(--g);font-size:11px;letter-spacing:1px}
+.grid{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+.card{background:linear-gradient(180deg,#132136,#0c1828);border:1px solid var(--l);border-radius:13px;padding:18px}
+.full{grid-column:1/-1}.muted{color:var(--s)}
+input,select{width:100%;background:#0b1726;border:1px solid #30445e;color:white;padding:11px;border-radius:8px;margin:5px 0 10px}
+.btn{border:1px solid #38506c;background:#102034;color:white;padding:10px 13px;border-radius:8px;cursor:pointer}
+.btn:disabled{opacity:.55;cursor:not-allowed}
+.primary{border:0;background:linear-gradient(90deg,var(--o),var(--g));font-weight:700}
+.danger{color:var(--red)}.ok{color:var(--green)}.warn{color:var(--yellow)}
+.row{display:flex;gap:9px;align-items:center;flex-wrap:wrap}
+.client{padding:13px 0;border-bottom:1px solid #26364b}.client:last-child{border-bottom:0}
+.message{margin-top:10px;padding:10px;border-radius:7px;background:#16273b;font-size:12px;white-space:pre-wrap}
+.hidden{display:none}
+.kpis{display:grid;grid-template-columns:repeat(3,1fr);gap:10px}
+.kpi{border:1px solid #2a3b50;border-radius:9px;padding:14px;background:#0d1928}.kpi b{font-size:24px;display:block;margin-top:5px}
+.debug{font-size:11px;color:#9eacbb;margin-top:8px}
+@media(max-width:760px){.grid,.kpis{grid-template-columns:1fr}.full{grid-column:auto}.head{align-items:flex-start;gap:10px}.brand{font-size:24px}}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="head">
+    <div>
+      <div class="brand"><span>A</span>LVO COMPANY</div>
+      <div class="tag">ESTRATÉGIA • DADOS • RESULTADOS</div>
+    </div>
+    <button id="logout" class="btn hidden">Sair</button>
+  </div>
+
+  <div id="auth" class="card">
+    <h2>Acesso ao ALVO Company</h2>
+    <p class="muted">Entre ou crie a primeira conta administrativa.</p>
+    <div class="grid">
+      <div><label>E-mail</label><input id="email" type="email" autocomplete="email"></div>
+      <div><label>Senha</label><input id="password" type="password" minlength="6" autocomplete="current-password"></div>
+    </div>
+    <div class="row">
+      <button id="signin" class="btn primary" type="button">Entrar</button>
+      <button id="signup" class="btn" type="button">Criar conta</button>
+    </div>
+    <div id="authmsg" class="message hidden"></div>
+    <div class="debug">Versão do portal: 2.0 — sem dependência externa de JavaScript</div>
+  </div>
+
+  <div id="app" class="hidden">
+    <div class="kpis">
+      <div class="kpi"><span class="muted">Supabase</span><b id="sbstatus" class="ok">Online</b></div>
+      <div class="kpi"><span class="muted">Mercado Livre</span><b id="mlstatus" class="warn">Verificando</b></div>
+      <div class="kpi"><span class="muted">Clientes</span><b id="clientcount">0</b></div>
+    </div>
+
+    <div class="grid" style="margin-top:14px">
+      <div class="card">
+        <h3>Novo cliente</h3>
+        <label>Empresa</label><input id="cname" placeholder="Ex.: Loja ABC">
+        <label>Plano</label>
+        <select id="cplan">
+          <option>ALVO Gestão</option>
+          <option>ALVO Sprint 30</option>
+          <option>ALVO Diagnóstico</option>
+          <option>Implantação</option>
+        </select>
+        <label>Loja virtual</label>
+        <select id="cplatform">
+          <option value="">Sem loja</option>
+          <option>Tray</option>
+          <option>Loja Integrada</option>
+          <option>Nuvemshop</option>
+          <option>WBuy</option>
+        </select>
+        <button id="createclient" class="btn primary" type="button">Cadastrar cliente</button>
+        <div id="clientmsg" class="message hidden"></div>
+      </div>
+
+      <div class="card">
+        <h3>Mercado Livre</h3>
+        <p class="muted">Cadastre o cliente e clique em Conectar Mercado Livre.</p>
+        <p><b>Redirect:</b><br><span class="muted">https://syrpumcyhacyypxzrynh.supabase.co/functions/v1/meli-callback</span></p>
+        <p><b>Notificações:</b><br><span class="muted">https://syrpumcyhacyypxzrynh.supabase.co/functions/v1/meli-webhook</span></p>
+      </div>
+
+      <div class="card full">
+        <h3>Clientes e integrações</h3>
+        <div id="clients"><p class="muted">Carregando...</p></div>
+      </div>
+
+      <div class="card full">
+        <h3>Pedidos sincronizados</h3>
+        <div id="orders"><p class="muted">Conecte uma conta do Mercado Livre e sincronize para ver os dados.</p></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+const SB_URL='https://syrpumcyhacyypxzrynh.supabase.co';
+const API_KEY='sb_publishable_4ejlMxxKKssMRf3KTGfhrA_6cz95NHc';
+const $=id=>document.getElementById(id);
+const show=(id,msg)=>{const e=$(id);e.textContent=msg;e.classList.remove('hidden')};
+const hide=id=>$(id).classList.add('hidden');
+
+function setBusy(btn,busy,label){
+  if(!btn)return;
+  if(busy){
+    btn.dataset.old=btn.textContent;
+    btn.disabled=true;
+    btn.textContent=label||'Aguarde...';
+  }else{
+    btn.disabled=false;
+    if(btn.dataset.old) btn.textContent=btn.dataset.old;
+  }
+}
+
+function getSession(){
+  try{return JSON.parse(localStorage.getItem('alvo_session')||'null')}catch{return null}
+}
+function saveSession(s){localStorage.setItem('alvo_session',JSON.stringify(s))}
+function clearSession(){localStorage.removeItem('alvo_session')}
+
+async function apiFetch(path,{method='GET',body=null,auth=true,headers={}}={}){
+  const s=getSession();
+  const h={
+    'apikey':API_KEY,
+    'Content-Type':'application/json',
+    ...headers
+  };
+  if(auth && s?.access_token) h['Authorization']='Bearer '+s.access_token;
+  const r=await fetch(SB_URL+path,{
+    method,headers:h,body:body===null?undefined:JSON.stringify(body)
+  });
+  const text=await r.text();
+  let data=null;
+  try{data=text?JSON.parse(text):null}catch{data=text}
+  if(!r.ok){
+    const msg=(data&&typeof data==='object'&&(data.msg||data.message||data.error_description||data.error))||text||('HTTP '+r.status);
+    throw new Error(msg);
+  }
+  return data;
+}
+
+async function refreshSession(){
+  const s=getSession();
+  if(!s?.refresh_token)return false;
+  try{
+    const data=await apiFetch('/auth/v1/token?grant_type=refresh_token',{
+      method:'POST',auth:false,body:{refresh_token:s.refresh_token}
+    });
+    if(data?.access_token){saveSession(data);return true}
+  }catch{}
+  clearSession();
+  return false;
+}
+
+async function ensureSession(){
+  let s=getSession();
+  if(!s?.access_token)return false;
+  try{
+    await apiFetch('/auth/v1/user');
+    return true;
+  }catch{
+    return await refreshSession();
+  }
+}
+
+async function invoke(name,body){
+  return apiFetch('/functions/v1/'+name,{method:'POST',body});
+}
+
+async function restSelect(table,query){
+  return apiFetch('/rest/v1/'+table+'?'+query);
+}
+
+async function boot(){
+  try{
+    const ok=await ensureSession();
+    if(!ok){
+      $('auth').classList.remove('hidden');
+      $('app').classList.add('hidden');
+      $('logout').classList.add('hidden');
+      return;
+    }
+    $('auth').classList.add('hidden');
+    $('app').classList.remove('hidden');
+    $('logout').classList.remove('hidden');
+
+    try{await invoke('alvo-onboarding',{name:'ALVO Company'})}catch(e){
+      console.error('Onboarding:',e);
+    }
+    await health();
+    await load();
+  }catch(e){
+    console.error(e);
+    $('sbstatus').textContent='Erro';
+    $('sbstatus').className='danger';
+  }
+}
+
+async function health(){
+  try{
+    const r=await fetch(SB_URL+'/functions/v1/meli-health',{headers:{apikey:API_KEY}});
+    const j=await r.json();
+    $('mlstatus').textContent=j.client_secret_configured?'Pronto':'Secret pendente';
+    $('mlstatus').className=j.client_secret_configured?'ok':'warn';
+  }catch(e){
+    $('mlstatus').textContent='Verificar';
+    $('mlstatus').className='warn';
+  }
+}
+
+$('signin').onclick=async()=>{
+  const btn=$('signin');
+  const email=$('email').value.trim();
+  const password=$('password').value;
+  if(!email||!password)return show('authmsg','Preencha e-mail e senha.');
+  setBusy(btn,true,'Entrando...');
+  try{
+    const data=await apiFetch('/auth/v1/token?grant_type=password',{
+      method:'POST',auth:false,body:{email,password}
+    });
+    if(!data?.access_token)throw new Error('O Supabase não retornou uma sessão.');
+    saveSession(data);
+    show('authmsg','Login realizado.');
+    await boot();
+  }catch(e){
+    show('authmsg','Erro: '+e.message);
+  }finally{
+    setBusy(btn,false);
+  }
+};
+
+$('signup').onclick=async()=>{
+  const btn=$('signup');
+  const email=$('email').value.trim();
+  const password=$('password').value;
+  if(!email||!password)return show('authmsg','Preencha e-mail e senha.');
+  if(password.length<6)return show('authmsg','A senha precisa ter pelo menos 6 caracteres.');
+  setBusy(btn,true,'Criando...');
+  try{
+    const data=await apiFetch('/auth/v1/signup',{
+      method:'POST',auth:false,body:{email,password}
+    });
+    if(data?.access_token){
+      saveSession(data);
+      show('authmsg','Conta criada e autenticada.');
+      await boot();
+    }else{
+      show('authmsg','Conta criada. Verifique seu e-mail para confirmar a conta e depois clique em Entrar.');
+    }
+  }catch(e){
+    show('authmsg','Erro: '+e.message);
+  }finally{
+    setBusy(btn,false);
+  }
+};
+
+$('logout').onclick=async()=>{
+  try{await apiFetch('/auth/v1/logout',{method:'POST'})}catch{}
+  clearSession();
+  location.reload();
+};
+
+$('createclient').onclick=async()=>{
+  const btn=$('createclient');
+  const name=$('cname').value.trim();
+  if(!name)return show('clientmsg','Informe o nome da empresa.');
+  setBusy(btn,true,'Salvando...');
+  try{
+    await invoke('alvo-client-create',{
+      name,
+      plan:$('cplan').value,
+      ecommerce_platform:$('cplatform').value||null
+    });
+    $('cname').value='';
+    show('clientmsg','Cliente cadastrado com sucesso.');
+    await load();
+  }catch(e){
+    show('clientmsg','Erro: '+e.message);
+  }finally{
+    setBusy(btn,false);
+  }
+};
+
+async function load(){
+  try{
+    const cs=await restSelect('clients','select=id,name,plan,ecommerce_platform&order=created_at.desc');
+    $('clientcount').textContent=cs.length;
+
+    let ints=[];
+    try{
+      ints=await restSelect('integrations','select=client_id,provider,external_account_name,last_sync_at');
+    }catch(e){console.warn(e)}
+
+    const im=new Map((ints||[]).map(x=>[x.client_id+':'+x.provider,x]));
+
+    $('clients').innerHTML=cs.length
+      ? cs.map(c=>{
+          const i=im.get(c.id+':mercadolivre');
+          const safeName=escapeHtml(c.name);
+          const safePlatform=escapeHtml(c.ecommerce_platform||'sem loja');
+          const status=i
+            ? `<span class="ok">Mercado Livre conectado ${escapeHtml(i.external_account_name||'')}</span>
+               <button class="btn" data-sync="${c.id}" type="button">Sincronizar 30 dias</button>`
+            : `<button class="btn primary" data-connect="${c.id}" type="button">Conectar Mercado Livre</button>`;
+          return `<div class="client">
+            <div><b>${safeName}</b> <span class="muted">• ${safePlatform}</span></div>
+            <div class="row" style="margin-top:8px">${status}</div>
+          </div>`;
+        }).join('')
+      : '<p class="muted">Nenhum cliente cadastrado.</p>';
+
+    document.querySelectorAll('[data-connect]').forEach(btn=>{
+      btn.onclick=()=>connectML(btn.dataset.connect,btn);
+    });
+    document.querySelectorAll('[data-sync]').forEach(btn=>{
+      btn.onclick=()=>syncML(btn.dataset.sync,btn);
+    });
+    await loadOrders();
+  }catch(e){
+    $('clients').innerHTML='<p class="danger">Erro ao carregar clientes: '+escapeHtml(e.message)+'</p>';
+  }
+}
+
+async function connectML(id,btn){
+  setBusy(btn,true,'Abrindo Mercado Livre...');
+  try{
+    const data=await invoke('meli-start',{client_id:id});
+    if(!data?.authorization_url)throw new Error(data?.error||'URL de autorização não recebida.');
+    location.href=data.authorization_url;
+  }catch(e){
+    alert('Erro ao conectar Mercado Livre: '+e.message);
+    setBusy(btn,false);
+  }
+}
+
+async function syncML(id,btn){
+  setBusy(btn,true,'Sincronizando...');
+  try{
+    const data=await invoke('meli-sync',{client_id:id,days:30});
+    alert(`${data.orders||0} pedidos sincronizados.`);
+    await load();
+  }catch(e){
+    alert('Erro na sincronização: '+e.message);
+  }finally{
+    setBusy(btn,false);
+  }
+}
+
+async function loadOrders(){
+  try{
+    const o=await restSelect('orders','select=gross_amount,source,ordered_at&order=ordered_at.desc&limit=1000');
+    if(!o||!o.length){
+      $('orders').innerHTML='<p class="muted">Conecte uma conta do Mercado Livre e sincronize para ver os dados.</p>';
+      return;
+    }
+    const total=o.reduce((s,x)=>s+Number(x.gross_amount||0),0);
+    $('orders').innerHTML=`
+      <div class="kpis">
+        <div class="kpi"><span class="muted">Pedidos carregados</span><b>${o.length}</b></div>
+        <div class="kpi"><span class="muted">Faturamento</span><b>${total.toLocaleString('pt-BR',{style:'currency',currency:'BRL'})}</b></div>
+        <div class="kpi"><span class="muted">Ticket médio</span><b>${(total/o.length).toLocaleString('pt-BR',{style:'currency',currency:'BRL'})}</b></div>
+      </div>`;
+  }catch(e){
+    $('orders').innerHTML='<p class="danger">Erro ao carregar pedidos: '+escapeHtml(e.message)+'</p>';
+  }
+}
+
+function escapeHtml(v){
+  return String(v??'').replace(/[&<>"']/g,m=>({
+    '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#039;'
+  }[m]));
+}
+
+window.addEventListener('unhandledrejection',e=>{
+  console.error(e.reason);
+  const msg=e.reason?.message||String(e.reason||'Erro inesperado');
+  if(!$('auth').classList.contains('hidden'))show('authmsg','Erro: '+msg);
+});
+
+boot();
+</script>
+</body>
+</html>
