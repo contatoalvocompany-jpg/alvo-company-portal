@@ -30,7 +30,14 @@ input,select{width:100%;background:#0b1726;border:1px solid #30445e;color:white;
 .kpis{display:grid;grid-template-columns:repeat(3,1fr);gap:10px}
 .kpi{border:1px solid #2a3b50;border-radius:9px;padding:14px;background:#0d1928}.kpi b{font-size:24px;display:block;margin-top:5px}
 .debug{font-size:11px;color:#9eacbb;margin-top:8px}
-@media(max-width:760px){.grid,.kpis{grid-template-columns:1fr}.full{grid-column:auto}.head{align-items:flex-start;gap:10px}.brand{font-size:24px}}
+.products-kpis{grid-template-columns:repeat(4,1fr);margin-bottom:14px}
+.table-wrap{overflow:auto;border:1px solid #2a3b50;border-radius:9px}
+table{width:100%;border-collapse:collapse;min-width:760px;background:#0d1928}
+th,td{padding:11px 12px;text-align:left;border-bottom:1px solid #26364b;font-size:13px}
+th{color:var(--g);font-size:11px;text-transform:uppercase;letter-spacing:.5px;background:#101f31;position:sticky;top:0}
+td.num{text-align:right;white-space:nowrap}
+.stock-zero{color:var(--red);font-weight:700}
+@media(max-width:760px){.grid,.kpis,.products-kpis{grid-template-columns:1fr}.full{grid-column:auto}.head{align-items:flex-start;gap:10px}.brand{font-size:24px}}
 </style>
 </head>
 <body>
@@ -55,7 +62,7 @@ input,select{width:100%;background:#0b1726;border:1px solid #30445e;color:white;
       <button id="signup" class="btn" type="button">Criar conta</button>
     </div>
     <div id="authmsg" class="message hidden"></div>
-    <div class="debug">Versão do portal: 2.0 — sem dependência externa de JavaScript</div>
+    <div class="debug">Versão do portal: 2.1 — Produtos e Anúncios</div>
   </div>
 
   <div id="app" class="hidden">
@@ -103,6 +110,12 @@ input,select{width:100%;background:#0b1726;border:1px solid #30445e;color:white;
       <div class="card full">
         <h3>Pedidos sincronizados</h3>
         <div id="orders"><p class="muted">Conecte uma conta do Mercado Livre e sincronize para ver os dados.</p></div>
+      </div>
+
+      <div class="card full">
+        <h3>Produtos e Anúncios</h3>
+        <p class="muted">Anúncios sincronizados do Mercado Livre, com SKU, preço e estoque atual.</p>
+        <div id="products"><p class="muted">Carregando anúncios...</p></div>
       </div>
     </div>
   </div>
@@ -185,6 +198,33 @@ async function invoke(name,body){
 async function restSelect(table,query){
   return apiFetch('/rest/v1/'+table+'?'+query);
 }
+
+/* PRODUCTS_UI_START */
+function buildProductsView(products){
+  const rows=Array.isArray(products)?products:[];
+  const esc=v=>String(v??'').replace(/[&<>"']/g,m=>({
+    '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#039;'
+  }[m]));
+  const money=v=>Number(v||0).toLocaleString('pt-BR',{style:'currency',currency:'BRL'});
+  const listings=rows.length;
+  const uniqueSkus=new Set(rows.map(p=>String(p.sku||'').trim()).filter(Boolean)).size;
+  const totalStock=rows.reduce((sum,p)=>sum+Math.max(0,Number(p.stock||0)),0);
+  const outOfStock=rows.filter(p=>Number(p.stock||0)<=0).length;
+  const html=rows.length
+    ? `<div class="table-wrap"><table>
+        <thead><tr><th>Produto</th><th>SKU</th><th>ID do anúncio</th><th>Preço</th><th>Estoque</th></tr></thead>
+        <tbody>${rows.map(p=>`<tr>
+          <td>${esc(p.title||'Sem título')}</td>
+          <td>${esc(p.sku||'—')}</td>
+          <td>${esc(p.external_id||'—')}</td>
+          <td class="num">${money(p.price)}</td>
+          <td class="num ${Number(p.stock||0)<=0?'stock-zero':''}">${Number(p.stock||0)}</td>
+        </tr>`).join('')}</tbody>
+      </table></div>`
+    : '<p class="muted">Nenhum anúncio sincronizado.</p>';
+  return {listings,uniqueSkus,totalStock,outOfStock,html};
+}
+/* PRODUCTS_UI_END */
 
 async function boot(){
   try{
@@ -331,6 +371,21 @@ async function load(){
       btn.onclick=()=>syncML(btn.dataset.sync,btn);
     });
     await loadOrders();
+
+    try{
+      const ps=await restSelect('products','select=external_id,sku,title,price,stock&order=title.asc&limit=1000');
+      const pv=buildProductsView(ps);
+      $('products').innerHTML=`
+        <div class="kpis products-kpis">
+          <div class="kpi"><span class="muted">Anúncios</span><b>${pv.listings}</b></div>
+          <div class="kpi"><span class="muted">SKUs únicos</span><b>${pv.uniqueSkus}</b></div>
+          <div class="kpi"><span class="muted">Estoque total</span><b>${pv.totalStock}</b></div>
+          <div class="kpi"><span class="muted">Sem estoque</span><b class="${pv.outOfStock?'danger':'ok'}">${pv.outOfStock}</b></div>
+        </div>
+        ${pv.html}`;
+    }catch(e){
+      $('products').innerHTML='<p class="danger">Erro ao carregar produtos: '+escapeHtml(e.message)+'</p>';
+    }
   }catch(e){
     $('clients').innerHTML='<p class="danger">Erro ao carregar clientes: '+escapeHtml(e.message)+'</p>';
   }
@@ -352,7 +407,10 @@ async function syncML(id,btn){
   setBusy(btn,true,'Sincronizando...');
   try{
     const data=await invoke('meli-sync',{client_id:id,days:30});
-    alert(`${data.orders||0} pedidos sincronizados.`);
+    const productsText=data.product_sync_ok===false
+      ? ` Produtos: ${data.product_sync_error||'falha na sincronização'}.`
+      : ` ${data.products||0} anúncios sincronizados.`;
+    alert(`${data.orders||0} pedidos sincronizados.${productsText}`);
     await load();
   }catch(e){
     alert('Erro na sincronização: '+e.message);
