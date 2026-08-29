@@ -1,0 +1,296 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>ALVO Company</title>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<style>
+:root{
+  --o:#FF6A00;--g:#FF9A00;--d:#0D1421;--p:#101b2b;--l:#26364b;
+  --w:#F5F6F8;--s:#BFC3C8;--green:#79dd5a;--red:#ff8d94;--yellow:#ffc229
+}
+*{box-sizing:border-box}
+body{
+  margin:0;background:radial-gradient(circle at 80% 0%,rgba(255,106,0,.12),transparent 25%),var(--d);
+  color:var(--w);font-family:Arial,sans-serif
+}
+.wrap{max-width:1120px;margin:auto;padding:24px}
+.head{display:flex;justify-content:space-between;align-items:center;margin-bottom:22px}
+.brand{font-size:30px;font-weight:800;letter-spacing:2px}
+.brand span{color:var(--o)}
+.tag{color:var(--g);font-size:11px;letter-spacing:1px}
+.grid{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+.card{
+  background:linear-gradient(180deg,#132136,#0c1828);
+  border:1px solid var(--l);border-radius:13px;padding:18px
+}
+.full{grid-column:1/-1}
+.muted{color:var(--s)}
+input,select{
+  width:100%;background:#0b1726;border:1px solid #30445e;color:white;
+  padding:11px;border-radius:8px;margin:5px 0 10px
+}
+.btn{
+  border:1px solid #38506c;background:#102034;color:white;padding:10px 13px;
+  border-radius:8px;cursor:pointer
+}
+.primary{border:0;background:linear-gradient(90deg,var(--o),var(--g));font-weight:700}
+.danger{color:var(--red)}.ok{color:var(--green)}.warn{color:var(--yellow)}
+.row{display:flex;gap:9px;align-items:center;flex-wrap:wrap}
+.client{padding:13px 0;border-bottom:1px solid #26364b}
+.client:last-child{border-bottom:0}
+.message{margin-top:10px;padding:10px;border-radius:7px;background:#16273b;font-size:12px}
+.hidden{display:none}
+.kpis{display:grid;grid-template-columns:repeat(3,1fr);gap:10px}
+.kpi{border:1px solid #2a3b50;border-radius:9px;padding:14px;background:#0d1928}
+.kpi b{font-size:24px;display:block;margin-top:5px}
+hr{border:0;border-top:1px solid #26364b;margin:16px 0}
+@media(max-width:760px){
+  .grid,.kpis{grid-template-columns:1fr}.full{grid-column:auto}
+  .head{align-items:flex-start;gap:10px}.brand{font-size:24px}
+}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="head">
+    <div>
+      <div class="brand"><span>A</span>LVO COMPANY</div>
+      <div class="tag">ESTRATÉGIA • DADOS • RESULTADOS</div>
+    </div>
+    <button id="logout" class="btn hidden">Sair</button>
+  </div>
+
+  <div id="auth" class="card">
+    <h2>Acesso ao ALVO Company</h2>
+    <p class="muted">Entre ou crie a primeira conta administrativa.</p>
+    <div class="grid">
+      <div><label>E-mail</label><input id="email" type="email" autocomplete="email"></div>
+      <div><label>Senha</label><input id="password" type="password" minlength="6" autocomplete="current-password"></div>
+    </div>
+    <div class="row">
+      <button id="signin" class="btn primary">Entrar</button>
+      <button id="signup" class="btn">Criar conta</button>
+    </div>
+    <div id="authmsg" class="message hidden"></div>
+  </div>
+
+  <div id="app" class="hidden">
+    <div class="kpis">
+      <div class="kpi"><span class="muted">Supabase</span><b class="ok">Online</b></div>
+      <div class="kpi"><span class="muted">Mercado Livre</span><b id="mlstatus" class="warn">Verificando</b></div>
+      <div class="kpi"><span class="muted">Clientes</span><b id="clientcount">0</b></div>
+    </div>
+
+    <div class="grid" style="margin-top:14px">
+      <div class="card">
+        <h3>Novo cliente</h3>
+        <label>Empresa</label><input id="cname" placeholder="Ex.: Loja ABC">
+        <label>Plano</label>
+        <select id="cplan">
+          <option>ALVO Gestão</option>
+          <option>ALVO Sprint 30</option>
+          <option>ALVO Diagnóstico</option>
+          <option>Implantação</option>
+        </select>
+        <label>Loja virtual</label>
+        <select id="cplatform">
+          <option value="">Sem loja</option>
+          <option>Tray</option>
+          <option>Loja Integrada</option>
+          <option>Nuvemshop</option>
+          <option>WBuy</option>
+        </select>
+        <button id="createclient" class="btn primary">Cadastrar cliente</button>
+        <div id="clientmsg" class="message hidden"></div>
+      </div>
+
+      <div class="card">
+        <h3>Mercado Livre</h3>
+        <p class="muted">Depois de cadastrar o cliente, clique em Conectar. O seller será levado ao Mercado Livre para autorizar o ALVO Company.</p>
+        <p><b>Redirect:</b><br><span class="muted">https://syrpumcyhacyypxzrynh.supabase.co/functions/v1/meli-callback</span></p>
+        <p><b>Notificações:</b><br><span class="muted">https://syrpumcyhacyypxzrynh.supabase.co/functions/v1/meli-webhook</span></p>
+      </div>
+
+      <div class="card full">
+        <h3>Clientes e integrações</h3>
+        <div id="clients"><p class="muted">Carregando...</p></div>
+      </div>
+
+      <div class="card full">
+        <h3>Pedidos sincronizados</h3>
+        <div id="orders"><p class="muted">Conecte uma conta do Mercado Livre e sincronize para ver os dados.</p></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+const URL='https://syrpumcyhacyypxzrynh.supabase.co';
+const KEY='sb_publishable_4ejlMxxKKssMRf3KTGfhrA_6cz95NHc';
+const sb=supabase.createClient(URL,KEY);
+const $=id=>document.getElementById(id);
+const show=(id,msg)=>{const e=$(id);e.textContent=msg;e.classList.remove('hidden')};
+const hide=id=>$(id).classList.add('hidden');
+
+async function boot(){
+  const {data:{session}}=await sb.auth.getSession();
+  if(!session){
+    $('auth').classList.remove('hidden');
+    $('app').classList.add('hidden');
+    $('logout').classList.add('hidden');
+    return;
+  }
+  $('auth').classList.add('hidden');
+  $('app').classList.remove('hidden');
+  $('logout').classList.remove('hidden');
+  await sb.functions.invoke('alvo-onboarding',{body:{name:'ALVO Company'}});
+  await health();
+  await load();
+}
+
+async function health(){
+  try{
+    const r=await fetch(URL+'/functions/v1/meli-health');
+    const j=await r.json();
+    $('mlstatus').textContent=j.client_secret_configured?'Pronto':'Secret pendente';
+    $('mlstatus').className=j.client_secret_configured?'ok':'warn';
+  }catch{
+    $('mlstatus').textContent='Verificar';
+    $('mlstatus').className='warn';
+  }
+}
+
+$('signin').onclick=async()=>{
+  show('authmsg','Entrando...');
+  const {error}=await sb.auth.signInWithPassword({
+    email:$('email').value.trim(),
+    password:$('password').value
+  });
+  if(error)return show('authmsg',error.message);
+  location.reload();
+};
+
+$('signup').onclick=async()=>{
+  show('authmsg','Criando conta...');
+  const {data,error}=await sb.auth.signUp({
+    email:$('email').value.trim(),
+    password:$('password').value
+  });
+  if(error)return show('authmsg',error.message);
+  if(data.session) location.reload();
+  else show('authmsg','Conta criada. Se a confirmação de e-mail estiver ativa, confirme o e-mail e depois clique em Entrar.');
+};
+
+$('logout').onclick=async()=>{
+  await sb.auth.signOut();
+  location.reload();
+};
+
+$('createclient').onclick=async()=>{
+  const name=$('cname').value.trim();
+  if(!name) return show('clientmsg','Informe o nome da empresa.');
+  show('clientmsg','Salvando...');
+  const {data,error}=await sb.functions.invoke('alvo-client-create',{
+    body:{
+      name,
+      plan:$('cplan').value,
+      ecommerce_platform:$('cplatform').value||null
+    }
+  });
+  if(error||data?.error)return show('clientmsg',error?.message||data.error);
+  $('cname').value='';
+  show('clientmsg','Cliente cadastrado.');
+  await load();
+};
+
+async function load(){
+  const {data:cs,error}=await sb.from('clients')
+    .select('id,name,plan,ecommerce_platform')
+    .order('created_at',{ascending:false});
+
+  if(error){
+    $('clients').innerHTML='<p class="danger">'+escapeHtml(error.message)+'</p>';
+    return;
+  }
+
+  $('clientcount').textContent=cs.length;
+
+  const {data:ints}=await sb.from('integrations')
+    .select('client_id,provider,external_account_name,last_sync_at');
+
+  const im=new Map((ints||[]).map(x=>[x.client_id+':'+x.provider,x]));
+
+  $('clients').innerHTML=cs.length
+    ? cs.map(c=>{
+        const i=im.get(c.id+':mercadolivre');
+        const safeName=escapeHtml(c.name);
+        const safePlatform=escapeHtml(c.ecommerce_platform||'sem loja');
+        const status=i
+          ? `<span class="ok">Mercado Livre conectado ${escapeHtml(i.external_account_name||'')}</span>
+             <button class="btn" data-sync="${c.id}">Sincronizar 30 dias</button>`
+          : `<button class="btn primary" data-connect="${c.id}">Conectar Mercado Livre</button>`;
+        return `<div class="client">
+          <div><b>${safeName}</b> <span class="muted">• ${safePlatform}</span></div>
+          <div class="row" style="margin-top:8px">${status}</div>
+        </div>`;
+      }).join('')
+    : '<p class="muted">Nenhum cliente cadastrado.</p>';
+
+  document.querySelectorAll('[data-connect]').forEach(btn=>{
+    btn.onclick=()=>connectML(btn.dataset.connect);
+  });
+  document.querySelectorAll('[data-sync]').forEach(btn=>{
+    btn.onclick=()=>syncML(btn.dataset.sync);
+  });
+
+  await loadOrders();
+}
+
+async function connectML(id){
+  const {data,error}=await sb.functions.invoke('meli-start',{body:{client_id:id}});
+  if(error||data?.error)return alert(error?.message||data.error);
+  location.href=data.authorization_url;
+}
+
+async function syncML(id){
+  const {data,error}=await sb.functions.invoke('meli-sync',{body:{client_id:id,days:30}});
+  if(error||data?.error)return alert(error?.message||data.error);
+  alert(`${data.orders||0} pedidos sincronizados.`);
+  await load();
+}
+
+async function loadOrders(){
+  const {data:o,error}=await sb.from('orders')
+    .select('gross_amount,source,ordered_at')
+    .order('ordered_at',{ascending:false})
+    .limit(1000);
+
+  if(error){
+    $('orders').innerHTML='<p class="danger">'+escapeHtml(error.message)+'</p>';
+    return;
+  }
+  if(!o||!o.length){
+    $('orders').innerHTML='<p class="muted">Conecte uma conta do Mercado Livre e sincronize para ver os dados.</p>';
+    return;
+  }
+
+  const total=o.reduce((s,x)=>s+Number(x.gross_amount||0),0);
+  $('orders').innerHTML=`
+    <div class="kpis">
+      <div class="kpi"><span class="muted">Pedidos carregados</span><b>${o.length}</b></div>
+      <div class="kpi"><span class="muted">Faturamento</span><b>${total.toLocaleString('pt-BR',{style:'currency',currency:'BRL'})}</b></div>
+      <div class="kpi"><span class="muted">Ticket médio</span><b>${(total/o.length).toLocaleString('pt-BR',{style:'currency',currency:'BRL'})}</b></div>
+    </div>`;
+}
+
+function escapeHtml(v){
+  return String(v??'').replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#039;'}[m]));
+}
+
+sb.auth.onAuthStateChange(()=>setTimeout(boot,0));
+boot();
+</script>
+</body>
+</html>
