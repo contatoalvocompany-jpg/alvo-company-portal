@@ -1,3 +1,3 @@
-# ALVO Company Portal v2
+# ALVO Company Portal v2.3
 
-Versão corrigida sem dependência de CDN JavaScript.
+Inclui Produtos/Anúncios, Status, Visitas 30d, Perguntas e Reputação do Mercado Livre.
