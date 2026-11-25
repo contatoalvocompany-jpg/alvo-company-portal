@@ -1,0 +1,51 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="referrer" content="no-referrer">
+<title>ALVO Company · Fotos de anúncios</title>
+<link rel="stylesheet" href="meli-photos.css">
+<script type="module" src="meli-photos.js"></script>
+</head>
+<body>
+<main>
+ <header><div><a class="brand" href="index.html">ALVO COMPANY</a><h1>Fotos de anúncios</h1></div><button type="button" id="logout" hidden>Sair</button></header>
+ <form id="login" class="card">
+  <h2>Entrar na ALVO</h2>
+  <label>E-mail <input id="email" type="email" autocomplete="username" required></label>
+  <label>Senha <input id="password" type="password" autocomplete="current-password" required></label>
+  <button class="primary">Entrar</button>
+ </form>
+ <div id="workspace" hidden>
+  <form id="search" class="card">
+   <h2>Localizar anúncio</h2>
+   <div class="fields"><label>Cliente e loja <select id="shop" required></select></label>
+   <label>Marketplace <select id="marketplace"><option>Mercado Livre</option></select></label>
+   <label>Anúncio ou SKU <input id="query" required maxlength="100" placeholder="MLB123456789 ou SKU"></label></div>
+   <button class="primary">Buscar</button>
+   <div id="matches"></div>
+  </form>
+  <section id="item" class="card" hidden>
+   <h2 id="title"></h2><p id="scope"></p><p id="eligibility"></p>
+   <h3>Antes · fotos atuais</h3><ol id="current" class="gallery"></ol>
+   <h3>Depois · ordem proposta</h3>
+   <p>Selecione nove JPGs RGB de 1.200 × 1.200 px, com até 1.799.999 bytes cada. A primeira foto deve ter fundo branco.</p>
+   <form id="stage"><label>Imagens <input id="files" type="file" accept="image/jpeg,.jpg,.jpeg" multiple required></label>
+    <label>Posição inicial <input id="start" type="number" min="1" max="9" value="1" required></label>
+    <button>Validar e guardar</button>
+   </form>
+   <ol id="ordered" class="gallery"></ol>
+   <label><input id="attest" type="checkbox"> Conferi as nove imagens, a ordem, o fundo da capa e a fidelidade ao produto. As fotos mostram as características reais e não incluem embalagens fictícias.</label>
+   <div class="actions"><button id="review" disabled>Registrar revisão visual</button><button id="upload" disabled>Enviar e validar no Mercado Livre</button><button id="preview" class="primary" disabled>Gerar proposta para aprovação</button><button id="reload">Atualizar</button></div>
+   <section id="versions"><h3>Histórico de versões</h3><div id="versionList"></div></section>
+  </section>
+  <section id="history" class="card" hidden>
+   <h2>Publicação e auditoria</h2><div id="publications"></div>
+   <details><summary>Eventos e resultados</summary><ul id="events"></ul></details>
+  </section>
+ </div>
+ <p id="message" role="status" aria-live="polite"></p>
+</main>
+</body>
+</html>
