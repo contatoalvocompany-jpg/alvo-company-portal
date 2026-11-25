@@ -16,8 +16,6 @@ const errorMessages={
  photo_publisher_disabled:'O Photo Publisher ainda não foi habilitado neste ambiente.',
  photo_processing_disabled:'O recebimento de imagens está bloqueado para este cliente.',
  photo_publication_disabled:'O envio ao Mercado Livre está bloqueado para este cliente.',
- photo_sales_locked:'O anúncio tem vendas ou o histórico de vendas não pôde ser confirmado.',
- user_product_has_sales:'Há vendas em um anúncio vinculado a este User Product.',
  user_product_scope_unverified:'Não foi possível confirmar todos os anúncios vinculados.',
  catalog_content_locked:'Este anúncio de catálogo tem as imagens bloqueadas.',
  photo_independent_reviewer_required:'A revisão visual precisa ser feita por outra pessoa com permissão para aprovar.',
@@ -46,7 +44,7 @@ async function api(action,options={}){
 }
 function control(){
  const complete=selected.length===9;
- const itemEligible=model?.item?.sold_quantity===0&&!model?.item?.catalog_listing;
+ const itemEligible=['active','paused'].includes(model?.item?.status)&&!model?.item?.catalog_listing;
  $('shop').disabled=busy;
  $('query').disabled=busy;
  const approved=model?.reviews?.some(r=>r.ids.join()===selected.join());
@@ -69,7 +67,7 @@ function click(label,task){const button=make('button',label);button.type='button
 function draw(){
  $('title').textContent=model.item.title;
  $('scope').textContent=[model.item.id,model.item.sku,model.item.user_product_id,model.processing_enabled?'Recebimento habilitado':'Recebimento bloqueado'].filter(Boolean).join(' · ');
- $('eligibility').textContent=model.item.sold_quantity>0?'Envio bloqueado: este anúncio tem vendas.':model.item.catalog_listing?'Envio bloqueado para este anúncio de catálogo.':!model.publication_enabled?'Envio desabilitado para este cliente.':'';
+ $('eligibility').textContent=model.item.catalog_listing?'Envio bloqueado para este anúncio de catálogo.':!['active','paused'].includes(model.item.status)?'Este anúncio está indisponível para edição.':!model.publication_enabled?'Envio desabilitado para este cliente.':model.item.user_product_id?'As fotos podem ser sincronizadas em outros anúncios vinculados a este User Product.':'';
  $('current').replaceChildren(...model.item.pictures.map((p,i)=>imageTile(p.secure_url,i+1+' · '+p.id)));
  const get=id=>model.images.find(i=>i.id===id);
  $('ordered').replaceChildren(...selected.map((id,i)=>{

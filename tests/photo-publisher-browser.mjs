@@ -24,7 +24,7 @@ try{
  const failures=[];page.on('pageerror',e=>failures.push(e.message));
  await page.route('https://cdn.jsdelivr.net/**',r=>r.fulfill({contentType:'text/javascript',headers:{'access-control-allow-origin':'*'},body:"export const createClient=()=>({auth:{signInWithPassword:async()=>({data:{session:{access_token:'fake-browser-test'}}}),signOut:async()=>({})}})"}));
  let received=[],approved=[],checked=[],proposals=[];
- const model={item:{id:getId(123),sku:'PILOTO-TESTE',title:'Balão Rosa Forte · anúncio simulado',user_product_id:'MLBU1',sold_quantity:0,pictures:[{id:'1-MLB1_1'}]},processing_enabled:true,publication_enabled:true};
+ const model={item:{id:getId(123),sku:'PILOTO-TESTE',title:'Balão Rosa Forte · anúncio simulado',user_product_id:'MLBU1',status:'active',sold_quantity:2,pictures:[{id:'1-MLB1_1'}]},processing_enabled:true,publication_enabled:true};
  await page.route('https://syrpumcyhacyypxzrynh.supabase.co/**',async r=>{
   const url=new URL(r.request().url()),act=url.pathname.split('/').at(-1);
   const p=r.request().postData();
